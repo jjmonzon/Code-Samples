@@ -1,0 +1,173 @@
+//Solution to a topcoder problem
+//Problem here: http://community.topcoder.com/stat?c=problem_statement&pm=2274&rd=5009
+
+package RandomStuff;
+
+import java.util.Arrays;
+
+public class BombMan {
+	
+	public static void main(String[] args) {
+		int l = args.length;
+		String[] maze = new String[l-1];
+		for (int i = 0; i < l-1; i++){
+			maze[i] = args[i].replace(",", "").replace("}", "").replace("{", "");
+			System.out.println(maze[i]);
+		}
+		int bombs = Integer.parseInt(args[l-1]);
+		System.out.println(bombs);
+		System.out.println("Shortest path: " +shortestPath(maze,bombs));
+	}
+	
+	public class Node implements Comparable{
+		int x, y, moves, bombs;
+		String[] maze;
+		
+		public Node(int x, int y, int moves, int bombs, String[] maze){
+			this.x = x;
+			this.y = y;
+			this.moves = moves;
+			this.bombs = bombs;
+			this.maze = maze;
+		}
+		
+		public int compareTo(Object o){
+			Node n = (Node) o;
+			if (moves < n.moves) return -1;
+			if (moves > n.moves) return 1;
+			if (bombs > n.bombs) return -1;
+			if (bombs < n.bombs) return 1;
+			if (x > n.x) return -1;
+			if (x < n.x) return 1;
+			if (y > n.y) return -1;
+			if (y < n.y) return 1;
+			return 0;
+		}
+	}
+	
+	
+	public static int shortestPath(String[] maze, int bombs){
+		BombMan b = new BombMan();
+		Heap h = new Heap();
+		int mazeLength = maze[0].length();
+		int mazeHeight = maze.length;
+		boolean visited[][] = new  boolean [mazeLength][mazeHeight];
+		
+		int bombManX = -1;
+		int bombManY = -1;
+		for (int y = 0; y < mazeHeight; y++){
+			bombManX = maze[y].indexOf('B');
+			if (bombManX != - 1){
+				maze[y]=maze[y].substring(0,bombManX) + '.' + maze[y].substring(bombManX+1);
+				bombManY = y;
+				break;
+			}
+		}
+		
+		System.out.println("BombMan is in location " + bombManX + ", " + bombManY);
+		
+		if (bombManX != -1 && bombManY != -1){
+			Node n = b.new Node(bombManX, bombManY, 0, bombs, maze);
+			h.add(n);
+			
+			while (!h.isEmpty()){
+				Node top = (Node) h.top();
+				h.pop();
+			
+				// Make sure that we don't visit the same x,y location twice!
+				if (visited[top.x][top.y]) continue;
+				visited[top.x][top.y] = true;
+				
+				System.out.println("Moves at this point: " + top.moves);
+				// Check if we have reached end condition and if so, return the number of moves to get there.
+				if (top.maze[top.y].charAt(top.x)=='E') return top.moves;
+				
+				// Try moving left, first check boundary conditions
+				if (top.x - 1 >= 0){
+					// Check if a wall stops us
+					if (top.maze[top.y].charAt(top.x - 1) == '#'){
+						// Bomb the wall if we have a bomb
+						if (top.bombs > 0){
+							//Maze mutates
+							String[] curMaze = new String[mazeHeight];
+							System.arraycopy(top.maze, 0, curMaze, 0, mazeHeight);
+							curMaze[top.y] = curMaze[top.y].substring(0,top.x-1)+"."+curMaze[top.y].substring(top.x);
+							//System.out.println("Maze mutated at level " + top.y + " from " + top.maze[top.y] + " to " + curMaze[top.y]);
+							h.add(b.new Node(top.x-1,top.y,top.moves+3,top.bombs-1,curMaze));
+						}
+					}
+					// No wall so just move
+					else{
+						h.add(b.new Node(top.x-1, top.y, top.moves+1, top.bombs, top.maze));
+					}
+				}
+				
+				// Try moving right, first check boundary conditions
+				if (top.x + 1 < mazeLength){
+					// Check if a wall stops us
+					if (top.maze[top.y].charAt(top.x + 1) == '#'){
+						// Bomb the wall if we have a bomb
+						if (top.bombs > 0){
+							//Maze mutates
+							String[] curMaze = new String[mazeHeight];
+							System.arraycopy(top.maze, 0, curMaze, 0, mazeHeight);
+							curMaze[top.y] = curMaze[top.y].substring(0,top.x+1)+"."+curMaze[top.y].substring(top.x+2);
+							//System.out.println("Maze mutated at level " + top.y + " from " + top.maze[top.y] + " to " + curMaze[top.y]);
+							h.add(b.new Node(top.x+1,top.y,top.moves+3,top.bombs-1,curMaze));
+						}
+					}
+					else{
+						h.add(b.new Node(top.x+1,top.y,top.moves+1,top.bombs,top.maze));
+					}
+				}
+				
+				// Try moving up, first check boundary conditions
+				if (top.y - 1 >= 0){
+					// Check if a wall stops us
+					if (top.maze[top.y-1].charAt(top.x) == '#'){
+						// Bomb the wall if we have a bomb
+						if (top.bombs > 0){
+							//Maze mutates
+							String[] curMaze = new String[mazeHeight];
+							System.arraycopy(top.maze, 0, curMaze, 0, mazeHeight);
+							curMaze[top.y-1] = curMaze[top.y-1].substring(0,top.x)+"."+curMaze[top.y-1].substring(top.x+1);
+							//System.out.println("Maze mutated at level " + (top.y-1) + " from " + top.maze[top.y-1] + " to " + curMaze[top.y-1]);
+							h.add(b.new Node(top.x,top.y-1,top.moves+3,top.bombs-1,curMaze));
+						}
+					}
+					// No wall so just move
+					else{
+						h.add(b.new Node(top.x, top.y-1, top.moves+1, top.bombs, top.maze));
+					}
+				}
+				
+				// Try moving down, first check boundary conditions
+				if (top.y + 1 < mazeHeight){
+					// Check if a wall stops us
+					if (top.maze[top.y+1].charAt(top.x) == '#'){
+						// Bomb the wall if we have a bomb
+						if (top.bombs > 0){
+							//Maze mutates
+							String[] curMaze = new String[mazeHeight];
+							System.arraycopy(top.maze, 0, curMaze, 0, mazeHeight);
+							curMaze[top.y+1] = curMaze[top.y+1].substring(0,top.x)+"."+curMaze[top.y+1].substring(top.x+1);
+							//System.out.println("Maze mutated at level " + (top.y+1) + " from " + top.maze[top.y+1] + " to " + curMaze[top.y+1]);
+							h.add(b.new Node(top.x,top.y+1,top.moves+3,top.bombs-1,curMaze));
+						}
+					}
+					// No wall so just move
+					else{
+						h.add(b.new Node(top.x, top.y+1, top.moves+1, top.bombs, top.maze));
+					}
+				}
+			}
+			
+		}
+		return -1;
+	}
+	
+	
+	
+	
+
+}
